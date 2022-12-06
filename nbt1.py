@@ -2,17 +2,34 @@ from pynbt import NBTFile
 from classes import *
 import base64
 import sys
+import gzip
 
 def print_metadata(nbt):
   meta = nbt['metadata']
   name = str(meta['name'].value)
-  color = str(meta['color'].value)
+  color = str(meta['color'].value) if 'color' in meta else "#000000"
   authors = str(meta['authors'].value)
   version = str(meta['ver'].value)
-  print("Name: "+name)
-  print("Color: "+color)
-  print("Author(s): "+authors)
-  print("Figura version: "+version)
+  print("Avatar Info:")
+  print(" - Name: "+name)
+  print(" - Color: "+color)
+  print(" - Author(s): "+authors)
+  print(" - Figura version: "+version)
+
+def print_structure(avatar):
+  print("Models:")
+  for model in avatar.Model.Children:
+    print(" - %s"%model.Name)
+
+  tex_size = sum(len(base64.decodebytes(texture.Data)) for texture in avatar.Textures)
+  print("Textures: (%.2fkB)" % (tex_size/1000))
+  for texture in avatar.Textures:
+    print(" - %s (%.2fkB)" % (texture.Name,len(base64.decodebytes(texture.Data))/1000))
+  
+  script_size = sum(len(script.Content) for script in avatar.Scripts)
+  print("Scripts: (%.2fkB)" % (script_size/1000))
+  for script in avatar.Scripts:
+    print(" - %s.lua (%.2fkB)"% (script.Name,len(script.Content)/1000))
 
 def process_scripts(nbt):
   Scripts = []
@@ -27,11 +44,22 @@ def process_textures(nbt):
   Textures = []
 
   texture_counter = 0
-  for texture in textures:
+  #print(textures['data'])
+  for tex in textures['data']:
+    #print(tex['default'])
+    texture_name = tex['default'].value
+    texture_data_tag = textures['src'][texture_name].value
+    texture_data = bytearray(texture_data_tag)
+    b64_data = base64.encodebytes(texture_data)
+    Textures.append(Texture(texture_counter,texture_name,b64_data))
+
+
+  '''for texture in textures:
     texture_data = base64.encodebytes(texture['default'].value)
     #print(texture['name'].value)
     Textures.append(Texture(texture_counter,texture['name'].value,texture_data))
-    texture_counter += 1
+    texture_counter += 1'''
+  #print(textures)
   return Textures
 
 #Aqui es donde me volvi loco (en el mal sentido)
@@ -105,13 +133,18 @@ def process_mesh(nbt):
   return Mesh(Name,Pivot,Rotation,Visibility,Vertices,Faces)
 
 def process_cube_face(nbt):
+  #print(nbt)
+  #print(nbt['uv'])
   TextureID = nbt['tex'].value
-  UV = (
-    nbt['uv'][0].value,
-    nbt['uv'][1].value,
-    nbt['uv'][2].value,
-    nbt['uv'][3].value
-  )
+  if 'uv' in nbt:
+    UV = (
+      nbt['uv'][0].value,
+      nbt['uv'][1].value,
+      nbt['uv'][2].value,
+      nbt['uv'][3].value
+    )
+  else:
+    UV = (0,0,0,0)
   Rotation = nbt['rot'].value if 'rot' in nbt else 0
   return CubeFace(True,TextureID,Rotation,UV)
 
@@ -190,12 +223,13 @@ def process_children(nbt):
   
   return Group(Name,AnchorType,Pivot,Rotation,Visibility,Children)
 
-with open(sys.argv[1], 'rb') as io:
+
+def process_file(io):
   nbt = NBTFile(io)
   #print(nbt.pretty())
-  texture = nbt['textures'][0]['default'].value
-  with open('texture.png', 'wb') as f:
-    f.write(texture)
+  #texture = nbt['textures'][0]['default'].value
+  #with open('texture.png', 'wb') as f:
+  #  f.write(texture)
   print_metadata(nbt)
 
   Textures = process_textures(nbt)
@@ -208,9 +242,20 @@ with open(sys.argv[1], 'rb') as io:
     f.write(frozen)
   
   Avatar_final = Avatar(Model, Textures, Scripts)
+  print_structure(Avatar_final)
   final = jsonpickle.encode(Avatar_final)
   with open("intermediate_2.json","w+") as f:
     f.write(final)
+
+filename = sys.argv[1]
+
+with open(filename, 'rb') as io:
+  try:
+    process_file(io)
+  except:
+    print("[info] NBT data was compressed with gzip")
+    with gzip.open(filename,'rb') as f:
+      process_file(f)
 
 
 
