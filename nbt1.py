@@ -47,7 +47,8 @@ def process_textures(nbt):
   #print(textures['data'])
   for tex in textures['data']:
     #print(tex['default'])
-    texture_name = tex['default'].value
+    #texture_name = tex['default'].value
+    texture_name = tex['d'].value
     texture_data_tag = textures['src'][texture_name].value
     texture_data = bytearray(texture_data_tag)
     b64_data = base64.encodebytes(texture_data)
@@ -237,14 +238,14 @@ def process_file(io):
   Scripts = process_scripts(nbt['scripts'])
 
   import jsonpickle
-  frozen = jsonpickle.encode(Model)
-  with open("model_intermediate.json","w+") as f:
-    f.write(frozen)
+  #frozen = jsonpickle.encode(Model)
+  #with open("model_intermediate.json","w+") as f:
+  #  f.write(frozen)
   
   Avatar_final = Avatar(Model, Textures, Scripts)
   print_structure(Avatar_final)
   final = jsonpickle.encode(Avatar_final)
-  with open("intermediate_2.json","w+") as f:
+  with open("intermediate.json","w+") as f:
     f.write(final)
 
 filename = sys.argv[1]
@@ -257,5 +258,5 @@ with open(filename, 'rb') as io:
     with gzip.open(filename,'rb') as f:
       process_file(f)
 
-
-
+print("Avatar has been converted to intermediate format")
+print("[!] Run \"convert_to_bbmodel.py\" on this same directory to generate the complete model")

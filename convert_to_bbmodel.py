@@ -3,17 +3,23 @@ from classes import *
 import json
 import uuid
 import base64
+import sys
 
-with open("intermediate_2.json",'r') as f:
-    avatar = jsonpickle.decode(f.read())
+try:
+    with open("intermediate.json",'r') as f:
+        avatar = jsonpickle.decode(f.read())
+except FileNotFoundError:
+    print("[!] \"intermediate.json\" missing, did you run nbt1.py?")
+    sys.exit(1)
 
-with open("model_intermediate.json",'r') as f:
-    intermediate = jsonpickle.decode(f.read())
+#with open("model_intermediate.json",'r') as f:
+    #intermediate = jsonpickle.decode(f.read())
 
+intermediate = avatar.Model
 #hRes = 256
 #vRes = 256
-hRes = 64
-vRes = 64
+hRes = 256
+vRes = 256
 
 textureUUIDS = []
 
@@ -53,7 +59,7 @@ blockbench_boilerplate = {
 }
 
 def process_mesh(mesh,visibility):
-    print("Mesh Name:", mesh.Name)
+    #print("Mesh Name:", mesh.Name)
     
     base = {
         "name": mesh.Name,
@@ -77,9 +83,9 @@ def process_mesh(mesh,visibility):
             "texture": 0
             #"texture": face.TextureID
         }
-        print(face.ID)
+        #print(face.ID)
     for vtx in mesh.Vertices:
-        print(vtx)
+        #print(vtx)
         #Vertices[vtx.ID] = list(vtx.Coords)
         Vertices[vtx.ID] = (vtx.Coords[0]-mesh.Pivot[0],vtx.Coords[1]-mesh.Pivot[1],vtx.Coords[2]-mesh.Pivot[2])
     
@@ -106,6 +112,7 @@ def process_cube(cube,visibility):
         "autouv": 1,
         "color": 2,
         "origin": list(cube.Pivot),
+        "rotation": list(cube.Rotation),
         "visibility": cube.Visible & visibility,
         "inflate": cube.Inflate,
         "faces": {
@@ -172,16 +179,16 @@ def process_group(grp,visibility):
         "children": []
     }
 
-    print("Name:",grp.Name)
-    print(grp.Visible)
+    #print("Name:",grp.Name)
+    #print(grp.Visible)
     Visibility = visibility & grp.Visible
         
     for child in grp.Children:
         if 'Cube' in str(type(child)):
-            print("cube")
+            #print("cube")
             base_group['children'].append(process_cube(child,Visibility))
         elif 'Mesh' in str(type(child)):
-            print("mesh")
+            #print("mesh")
             base_group['children'].append(process_mesh(child,Visibility))
         else:
             base_group['children'].append(process_group(child,Visibility))
@@ -209,28 +216,30 @@ for texture in avatar.Textures:
     textureUUIDS.append(tex_uuid)
 
     blockbench_boilerplate['textures'].append(texture_base)
-
+    print("Saving %s.png" % texture.Name)
     with open(texture.Name+'.png','wb') as f:
         f.write(base64.decodebytes(texture.Data))
 
 
 blockbench_boilerplate['outliner'].append(process_group(intermediate,True))
 
-with open('generated.bbmodel','w+') as f:
-    f.write(json.dumps(blockbench_boilerplate))
+# esto era para un test
+#with open('generated.bbmodel','w+') as f:
+#    f.write(json.dumps(blockbench_boilerplate))
 
 for model in avatar.Model.Children:
-    print(model.Name)
     blockbench_boilerplate['outliner'] = []
     blockbench_boilerplate['elements'] = []
     blockbench_boilerplate['outliner'].append(process_group(model,True))
     blockbench_boilerplate['name'] = model.Name
+    print("Saving %s.bbmodel" % model.Name)
     with open(model.Name + '.bbmodel','w') as f:
         f.write(json.dumps(blockbench_boilerplate))
 
 
 for script in avatar.Scripts:
     #print(script.Name)
+    print("Saving %s.lua" % script.Name)
     with open(script.Name+'.lua','w') as f:
         f.write(script.Content)
 
@@ -238,4 +247,4 @@ for script in avatar.Scripts:
   #with open('texture.png', 'wb') as f:
   #  f.write(texture)
 
-print(intermediate)
+#print(intermediate)
