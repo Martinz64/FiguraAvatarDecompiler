@@ -1,3 +1,7 @@
+# Figura Avatar decompiler
+
+## Supported Figura version: 0.1.0-rc14
+
 ## WARNING
 This code is so janky that attempting to understand it may give you brian cancer
 
