@@ -5,6 +5,8 @@ import uuid
 import base64
 import sys
 
+outdir = "out"
+
 try:
     with open("intermediate.json",'r') as f:
         avatar = jsonpickle.decode(f.read())
@@ -21,7 +23,7 @@ intermediate = avatar.Model
 hRes = 256
 vRes = 256
 
-textureUUIDS = []
+textureUUIDS = {}
 
 blockbench_boilerplate = {
     "meta": {
@@ -42,7 +44,11 @@ blockbench_boilerplate = {
     },
     "elements": [],
     "outliner": [],
-    "textures": [{
+    "textures": [
+        ]
+}
+
+'''{
         "path": "/home/martinz/FiguraExtractor/texture.png",
         "name": "texture.png",
         "folder": "",
@@ -55,8 +61,7 @@ blockbench_boilerplate = {
         "saved": True,
         "uuid": "972e7a51-8f45-dee1-4d9f-f0527d49f867",
         "relative_path": "../texture.png"
-    }]
-}
+    }'''
 
 def process_mesh(mesh,visibility):
     #print("Mesh Name:", mesh.Name)
@@ -198,26 +203,29 @@ def process_group(grp,visibility):
 blockbench_boilerplate['textures'] = []
 for texture in avatar.Textures:
     #print(texture.Name)
-    tex_uuid = str(uuid.uuid4())
-    texture_base = {
-        "path": texture.Name + '.png',
-        "name": texture.Name,
-        "folder": "",
-        "namespace": "",
-        "id": str(texture.ID),
-        "particle": True,
-        "render_mode": "default",
-        "visible": True,
-        "mode": "bitmap",
-        "saved": True,
-        "uuid": tex_uuid,
-        "relative_path": '../'+texture.Name + '.png'
-    }
-    textureUUIDS.append(tex_uuid)
+    if texture.Name not in textureUUIDS:
+        textureUUIDS[texture.Name] = str(uuid.uuid4())
 
-    blockbench_boilerplate['textures'].append(texture_base)
+        tex_uuid = textureUUIDS[texture.Name]
+        texture_base = {
+            "path": texture.Name + '.png',
+            "name": texture.Name,
+            "folder": "",
+            "namespace": "",
+            "id": str(texture.ID),
+            "particle": True,
+            "render_mode": "default",
+            "visible": True,
+            "mode": "bitmap",
+            "saved": True,
+            "uuid": tex_uuid,
+            "relative_path": '../'+texture.Name + '.png'
+        }
+        #textureUUIDS.append(tex_uuid)
+
+        blockbench_boilerplate['textures'].append(texture_base)
     print("Saving %s.png" % texture.Name)
-    with open(texture.Name+'.png','wb') as f:
+    with open(outdir + "/"+ texture.Name+'.png','wb') as f:
         f.write(base64.decodebytes(texture.Data))
 
 
@@ -233,14 +241,14 @@ for model in avatar.Model.Children:
     blockbench_boilerplate['outliner'].append(process_group(model,True))
     blockbench_boilerplate['name'] = model.Name
     print("Saving %s.bbmodel" % model.Name)
-    with open(model.Name + '.bbmodel','w') as f:
+    with open(outdir + "/"+ model.Name + '.bbmodel','w') as f:
         f.write(json.dumps(blockbench_boilerplate))
 
 
 for script in avatar.Scripts:
     #print(script.Name)
     print("Saving %s.lua" % script.Name)
-    with open(script.Name+'.lua','w') as f:
+    with open(outdir + "/"+ script.Name+'.lua','w') as f:
         f.write(script.Content)
 
 #texture = nbt['textures'][0]['default'].value

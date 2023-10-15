@@ -151,8 +151,14 @@ def process_cube_face(nbt):
 
 def process_cube(nbt):
   #print("cube")
-  From = (nbt['f'][0].value,nbt['f'][1].value,nbt['f'][2].value)
-  To = (nbt['t'][0].value,nbt['t'][1].value,nbt['t'][2].value)
+
+  From = (0,0,0)
+  if 'f' in nbt:
+    From = (nbt['f'][0].value,nbt['f'][1].value,nbt['f'][2].value)
+  
+  To = (0,0,0)
+  if 't' in nbt:
+    To = (nbt['t'][0].value,nbt['t'][1].value,nbt['t'][2].value)
   #print("From:",From, " To:",To)
   Inflate = nbt['inf'].value if 'inf' in nbt else 0
   #print("Inflate:",Inflate)
@@ -209,7 +215,7 @@ def process_children(nbt):
   
   #print("Pivot:",Pivot," Rotation:",Rotation)
 
-  
+  print(Name)
   Children = []
   if 'chld' in nbt:
     #print("[")
